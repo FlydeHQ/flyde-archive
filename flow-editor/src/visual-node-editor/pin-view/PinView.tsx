@@ -10,10 +10,9 @@ import {
   getOutputName,
   PinType,
 } from "@flyde/core";
-import { getPinDomId } from "../dom-ids";
+import { getPinDomId, getPinDomHandleId } from "../dom-ids";
 import { calcHistoryContent, useHistoryHelpers } from "./helpers";
 import { useDarkMode } from "../../flow-editor/DarkModeContext";
-export const PIN_HEIGHT = 23;
 
 export type InputPinViewProps = {
   type: "input";
@@ -46,6 +45,7 @@ export type PinViewProps = {
 
   onMouseUp: (id: string, type: PinType, e: React.MouseEvent) => void;
   onMouseDown: (id: string, type: PinType, e: React.MouseEvent) => void;
+  isMain: boolean;
 } & (InputPinViewProps | OutputPinViewProps);
 
 export interface OptionalPinViewProps {
@@ -68,6 +68,7 @@ export const PinView: React.FC<PinViewProps> = React.memo(function PinView(
     id,
     onMouseDown,
     onMouseUp,
+    isMain,
   } = props;
 
   const { history, resetHistory, refreshHistory } = useHistoryHelpers(
@@ -101,13 +102,7 @@ export const PinView: React.FC<PinViewProps> = React.memo(function PinView(
         </Menu>
       );
     } else {
-      return (
-        <Menu>
-          {/* {logMenuItem} */}
-          {/* {bpMenuItem} */}
-          {inspectMenuItem}
-        </Menu>
-      );
+      return <Menu>{inspectMenuItem}</Menu>;
     }
   };
 
@@ -133,8 +128,6 @@ export const PinView: React.FC<PinViewProps> = React.memo(function PinView(
           closest: isClosestToMouse,
           optional,
           connected,
-          // "is-logged": logged,
-          // "is-breakpoint": breakpoint,
           minimized: props.minimized,
           dark,
         },
@@ -148,8 +141,6 @@ export const PinView: React.FC<PinViewProps> = React.memo(function PinView(
           connected,
           closest: isClosestToMouse,
           optional,
-          // "is-logged": logged,
-          // "has-value": isDefined(runtimeData.lastValues.length)
           minimized: props.minimized,
           "error-pin": id === ERROR_PIN_ID,
           dark,
@@ -217,6 +208,13 @@ export const PinView: React.FC<PinViewProps> = React.memo(function PinView(
     [id, type, onMouseUp]
   );
 
+  const idParams = {
+    fullInsIdPath: fullInsIdPath(props.currentInsId, props.ancestorsInsIds),
+    pinId: id,
+    pinType: isMain ? (type === "input" ? "output" : "input") : type,
+    isMain,
+  };
+
   return (
     <div className={calcClassNames()} data-pin-id={id}>
       <Tooltip className="pin-info-tooltip" content={calcTooltipContent()}>
@@ -228,15 +226,7 @@ export const PinView: React.FC<PinViewProps> = React.memo(function PinView(
           data-tip=""
           data-html={true}
           data-for={id + props.currentInsId}
-          id={getPinDomId({
-            fullInsIdPath: fullInsIdPath(
-              props.currentInsId,
-              props.ancestorsInsIds
-            ),
-            pinId: id,
-            pinType: type,
-            isMain: false,
-          })}
+          id={getPinDomId(idParams)}
           onDoubleClick={(e) =>
             props.onDoubleClick && props.onDoubleClick(id, e)
           }
@@ -249,6 +239,17 @@ export const PinView: React.FC<PinViewProps> = React.memo(function PinView(
         </ContextMenu>
       </Tooltip>
       <div className="wire" />
+      <div
+        className={classNames("pin-handle", type, {
+          minimized: props.minimized,
+          closest: isClosestToMouse,
+          selected,
+        })}
+        id={getPinDomHandleId(idParams)}
+        onMouseDown={_onMouseDown}
+        onMouseUp={_onMouseUp}
+        onClick={onClick}
+      />
     </div>
   );
 });
